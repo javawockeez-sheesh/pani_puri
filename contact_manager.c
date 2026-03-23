@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define MAX_CONTACTS 100
 #define NAME_LEN 50
@@ -22,6 +23,7 @@ char filename[100] = "contacts.csv";
 int isDirty = 0;
 int hasSavedOnce = 0;
 
+// ================= UTIL =================
 void trimNewline(char *str) {
     str[strcspn(str, "\n")] = 0;
 }
@@ -49,6 +51,55 @@ int isDuplicate(char *name, char *phone) {
     return 0;
 }
 
+// ================= SEARCH =================
+void searchContact() {
+    if (contactCount == 0) {
+        printf("No contacts to search.\n");
+        return;
+    }
+
+    char query[NAME_LEN];
+
+    printf("Enter name or phone to search: ");
+    fgets(query, sizeof(query), stdin);
+    trimNewline(query);
+
+    if (strlen(query) == 0) {
+        printf("Search query cannot be empty.\n");
+        return;
+    }
+
+    int found = 0;
+
+    for (int i = 0; i < contactCount; i++) {
+
+        char nameLower[NAME_LEN];
+        char phoneLower[PHONE_LEN];
+        char queryLower[NAME_LEN];
+
+        strcpy(nameLower, contacts[i].name);
+        strcpy(phoneLower, contacts[i].phone);
+        strcpy(queryLower, query);
+
+        for (int j = 0; nameLower[j]; j++) nameLower[j] = tolower(nameLower[j]);
+        for (int j = 0; phoneLower[j]; j++) phoneLower[j] = tolower(phoneLower[j]);
+        for (int j = 0; queryLower[j]; j++) queryLower[j] = tolower(queryLower[j]);
+
+        if (strstr(nameLower, queryLower) || strstr(phoneLower, queryLower)) {
+            printf("\nID: %d\n", contacts[i].id);
+            printf("Name: %s\n", contacts[i].name);
+            printf("Phone: %s\n", contacts[i].phone);
+            printf("Email: %s\n", contacts[i].email);
+            found = 1;
+        }
+    }
+
+    if (!found) {
+        printf("No matching contacts found.\n");
+    }
+}
+
+// ================= CORE =================
 void addContact() {
     if (contactCount >= MAX_CONTACTS) {
         printf("Contact list full.\n");
@@ -155,6 +206,7 @@ void deleteContact() {
     printf("Contact not found.\n");
 }
 
+// ================= DISPLAY =================
 void listContacts() {
     if (contactCount == 0) {
         printf("No contacts.\n");
@@ -169,6 +221,7 @@ void listContacts() {
     }
 }
 
+// ================= FILE =================
 void exportCSV() {
     FILE *file = fopen(filename, "w");
 
@@ -177,7 +230,6 @@ void exportCSV() {
         return;
     }
 
-    // Header
     fprintf(file, "id,name,phone,email\n");
 
     for (int i = 0; i < contactCount; i++) {
@@ -221,11 +273,8 @@ void importCSV() {
         strcpy(c.phone, token);
 
         token = strtok(NULL, ",");
-        if (token) {
-            strcpy(c.email, token);
-        } else {
-            strcpy(c.email, "");
-        }
+        if (token) strcpy(c.email, token);
+        else strcpy(c.email, "");
 
         trimNewline(c.name);
         trimNewline(c.phone);
@@ -251,43 +300,43 @@ void importCSV() {
     isDirty = 0;
 }
 
+// ================= MENU =================
 void menu() {
     printf("\n==============================\n");
     printf("      CONTACT MANAGER\n");
     printf("==============================\n");
 
-    if (isDirty) {
-        printf("Status: Unsaved changes\n");
-    } else if (hasSavedOnce) {
-        printf("Status: All changes saved\n");
-    }
+    if (isDirty) printf("Status: Unsaved changes\n");
+    else if (hasSavedOnce) printf("Status: All changes saved\n");
 
     printf("\n[1] Add Contact\n");
     printf("[2] List Contacts\n");
     printf("[3] Update Contact\n");
-    printf("[4] Delete Contact\n");
-    printf("[5] Save to File\n");
-    printf("[6] Exit\n");
+    printf("[4] Search Contact\n");
+    printf("[5] Delete Contact\n");
+    printf("[6] Save to File\n");
+    printf("[7] Exit\n");
 
     printf("\nSelect option: ");
 }
 
+// ================= MAIN =================
 int main() {
     importCSV();
 
     while (1) {
         menu();
-
         int choice = getIntInput();
 
         switch (choice) {
             case 1: addContact(); break;
             case 2: listContacts(); break;
             case 3: updateContact(); break;
-            case 4: deleteContact(); break;
-            case 5: exportCSV(); break;
+            case 4: searchContact(); break;
+            case 5: deleteContact(); break;
+            case 6: exportCSV(); break;
 
-            case 6:
+            case 7:
                 if (isDirty) {
                     printf("You have unsaved changes. Exit anyway? (y/n): ");
                     char confirm[10];
